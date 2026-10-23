@@ -21,7 +21,7 @@ pipeline {
 
         stage('Check Kubernetes') {
             steps {
-                bat 'kubectl config use-context docker-desktop'
+                bat 'kubectl config current-context'
                 bat 'kubectl get nodes'
             }
         }
