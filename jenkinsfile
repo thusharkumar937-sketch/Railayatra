@@ -3,7 +3,7 @@ pipeline {
 
     environment {
         IMAGE_NAME = 'railyatra-app'
-        KUBECONFIG = 'C:\\Users\\thush\\.kube\\config'
+        KUBECONFIG = 'C:\\ProgramData\\Jenkins\\.kube\\config'
     }
 
     stages {
