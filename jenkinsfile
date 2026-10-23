@@ -1,6 +1,11 @@
 pipeline {
     agent any
 
+    environment {
+        IMAGE_NAME = 'railyatra-app'
+        KUBECONFIG = 'C:\\Users\\thush\\.kube\\config'
+    }
+
     stages {
         stage('Build and Test with Maven') {
             steps {
@@ -8,55 +13,42 @@ pipeline {
             }
         }
 
-        stage('Check Docker') {
-            steps {
-                bat 'docker --version'
-            }
-        }
-
         stage('Build Docker Image') {
             steps {
-                bat 'docker build -t railyatra-app:latest .'
+                bat 'docker build -t %IMAGE_NAME%:%BUILD_NUMBER% -t %IMAGE_NAME%:latest .'
             }
         }
 
         stage('Check Kubernetes') {
             steps {
-                withEnv(['KUBECONFIG=C:\\SPB_Data\\.kube\\config']) {
-                    bat 'kubectl config current-context'
-                    bat 'kubectl get nodes'
-                }
+                bat 'kubectl config use-context docker-desktop'
+                bat 'kubectl get nodes'
             }
         }
+
         stage('Deploy to Kubernetes') {
             steps {
-                withEnv(['KUBECONFIG=C:\\SPB_Data\\.kube\\config']) {
-                    bat 'kubectl apply -f k8s/deployment.yaml'
-                }
+                bat 'kubectl apply -f k8s/deployment.yaml'
+                bat 'kubectl set image deployment/railyatra railyatra=%IMAGE_NAME%:%BUILD_NUMBER%'
             }
         }
 
         stage('Verify Deployment') {
             steps {
-                withEnv(['KUBECONFIG=C:\\SPB_Data\\.kube\\config']) {
-                    bat 'kubectl rollout status deployment/railyatra --timeout=120s'
-                    bat 'kubectl get deployments'
-                    bat 'kubectl get pods'
-                    bat 'kubectl get services'
-                }
+                bat 'kubectl rollout status deployment/railyatra --timeout=120s'
+                bat 'kubectl get deployments'
+                bat 'kubectl get pods'
+                bat 'kubectl get services'
             }
         }
-
-        
     }
 
     post {
         success {
-            echo 'RailYatra built and deployed to Kubernetes successfully!'
+            echo 'RailYatra deployed. Open http://localhost:30008'
         }
-
         failure {
-            echo 'Pipeline failed. Check Console Output for the first error.'
+            echo 'Pipeline failed. Check the Console Output for the first error.'
         }
     }
 }
