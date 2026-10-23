@@ -1,0 +1,62 @@
+pipeline {
+    agent any
+
+    stages {
+        stage('Build and Test with Maven') {
+            steps {
+                bat 'mvn clean package'
+            }
+        }
+
+        stage('Check Docker') {
+            steps {
+                bat 'docker --version'
+            }
+        }
+
+        stage('Build Docker Image') {
+            steps {
+                bat 'docker build -t railyatra-app:latest .'
+            }
+        }
+
+        stage('Check Kubernetes') {
+            steps {
+                withEnv(['KUBECONFIG=C:\\SPB_Data\\.kube\\config']) {
+                    bat 'kubectl config current-context'
+                    bat 'kubectl get nodes'
+                }
+            }
+        }
+        stage('Deploy to Kubernetes') {
+            steps {
+                withEnv(['KUBECONFIG=C:\\SPB_Data\\.kube\\config']) {
+                    bat 'kubectl apply -f k8s/deployment.yaml'
+                }
+            }
+        }
+
+        stage('Verify Deployment') {
+            steps {
+                withEnv(['KUBECONFIG=C:\\SPB_Data\\.kube\\config']) {
+                    bat 'kubectl rollout status deployment/railyatra --timeout=120s'
+                    bat 'kubectl get deployments'
+                    bat 'kubectl get pods'
+                    bat 'kubectl get services'
+                }
+            }
+        }
+
+        
+    }
+
+    post {
+        success {
+            echo 'RailYatra built and deployed to Kubernetes successfully!'
+        }
+
+        failure {
+            echo 'Pipeline failed. Check Console Output for the first error.'
+        }
+    }
+}
